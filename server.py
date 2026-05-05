@@ -257,6 +257,19 @@ def _resolve_message_text(channel: str, ts: str) -> str:
         if not msgs:
             return ""
         msg = msgs[0]
+        # Debug: log a compact view of the message structure
+        try:
+            keys = sorted(msg.keys())
+            n_blocks = len(msg.get("blocks") or [])
+            n_atts = len(msg.get("attachments") or [])
+            logger.info(
+                "message structure: keys=%s blocks=%d attachments=%d subtype=%s bot=%s",
+                keys, n_blocks, n_atts, msg.get("subtype"), msg.get("bot_id"),
+            )
+            import json as _json
+            logger.info("message raw (truncated): %s", _json.dumps(msg)[:2000])
+        except Exception:
+            pass
         parts: list[str] = []
         top = msg.get("text") or ""
         if top:
