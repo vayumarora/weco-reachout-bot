@@ -1,0 +1,7 @@
+openai>=1.50.0
+slack-sdk>=3.30.0
+flask>=3.0.0
+gunicorn>=22.0.0
+python-dotenv>=1.0.0
+notion-client>=2.2.0
+supabase>=2.0.0
