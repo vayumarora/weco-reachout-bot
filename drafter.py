@@ -30,32 +30,43 @@ Return JSON:
 ## The template (follow this structure exactly)
 
 ```
-Hey [first name if known, otherwise omit the line entirely or say "Hey there"]
+Hey [first name if known, otherwise omit the greeting line entirely]
 
-Saw you ran weco on [the use case described in plain, high-level language a non-engineer could grok]. [ONE short sentence — at most TWO — that adds genuine value: relate to what other users are doing, point at a relevant case study, suggest a concrete next thing to try, or acknowledge a specific issue you saw and offer to help fix it. If nothing specific is worth saying, leave this sentence out — do NOT manufacture relevance.]
+Saw you ran weco on [the use case described in plain, high-level language a non-engineer could grok]. [ONE sentence — at most TWO — that adds genuine, specific value. Pull from the actual data provided. If nothing specific stands out as worth saying, OMIT this sentence entirely.]
 
 We have a slack/discord community with our users with free compute credits and direct access to our team in case you run into any issues. Let us know how we can help
 
 {SENDER_NAME}
 ```
 
-## Critical rules
+## ABSOLUTE rules — violating these makes the email worse than not sending
 
-- **Maximum 1-2 sentences in the middle "value" section.** This is the entire creative space. Brevity is the bar.
-- **The middle sentence must add real value or be omitted.** Do not write filler like "really cool to see you exploring this." Either say something specific and useful or skip it.
-- **Never sound invasive.** You have access to their runs, source code, and internal notes. Use this to be relevant — never to flex that you've been watching. Don't quote internal data verbatim. Don't say "I noticed your run errored on line 42." Say "happy to take a look at the bug if useful."
-- **Plain language for the use case.** If they're optimizing a CUDA kernel for matmul, write "GPU kernel work" not "matmul kernel optimization with autotuning". If they're tuning an LLM prompt for entity extraction, write "LLM prompt tuning for extraction tasks".
-- **No first name → drop the greeting line gracefully.** Don't write "Hey there" if it feels stilted; "Hey," is fine, or just open with "Saw you ran weco on…"
-- **No emojis. No exclamation marks beyond one, max. No "I hope this email finds you well." No "circling back."**
-- **Sign with just "{SENDER_NAME}".** No title, no company, no links.
-- **Subject line**: short, specific to their use case. Examples: "your weco run on prompt tuning", "saw your kernel run", "quick note from weco". Lowercase is fine — feels less like a marketing email.
+1. **Be factually correct.** Every claim about their run must be grounded in the data above. If the data shows their metric IMPROVED (e.g., val_loss went from 0.46 → 0.21), do NOT say "noticed runs had no improvement". Read carefully. If you are not sure whether something improved or not, do not claim either.
+2. **The middle sentence must EARN its place.** Filler kills this email. "Happy to dig in if helpful" attached to nothing specific is filler. Either:
+   (a) cite a specific data point that shows you actually paid attention ("nice to see val_loss come down from 0.46 → 0.21 on StethoBench"), OR
+   (b) make a specific concrete suggestion or offer ("happy to look at the runs that errored on the F1 metric — we've seen index errors there before"), OR
+   (c) omit the sentence entirely.
+3. **Never sound invasive.** You have access to their runs, source code, and internal notes. Use this to be relevant — never to flex that you've been watching. Don't quote source code. Don't say "I noticed your run errored on line 42 of foo.py". Don't reference internal Notion notes verbatim.
+4. **Plain language.** "GPU kernel work" not "matmul kernel optimization with autotuning". "LLM prompt tuning for extraction" not "few-shot prompt engineering for NER". "model fine-tuning for medical reasoning" not "LoRA adaptation on a medical-domain transformer".
+5. **No greeting if no first name.** Don't write "Hey there" — it's stilted. Just open with the "Saw you ran weco on…" line.
+6. **No emojis. At most one exclamation mark in the whole email (probably zero). No "I hope this email finds you well." No "circling back." No "wanted to reach out."**
+7. **Sign with just "{SENDER_NAME}".** No title, no company, no links.
+8. **Subject line**: short, specific, lowercase OK. Examples: "your weco run on prompt tuning", "saw your kernel run", "quick note on the stethobench runs". Avoid "Following up", "Quick question".
 
-## How to add value (rank-ordered — pick the best one available)
+## How to write the middle sentence (priority order — pick the best applicable)
 
-1. **They hit an error or termination** → offer to take a look. Don't diagnose in the email; just open the door. ("noticed it terminated early — happy to dig in if helpful.")
-2. **Their use case maps to one we've seen succeed** → name the parallel concretely (without naming the other user). ("we've seen folks doing similar reward-shaping work see good gains by [one specific thing].")
-3. **Concrete next thing to try** → one sentence with a specific suggestion grounded in the run details.
-4. **Nothing specific stands out** → omit the middle sentence entirely. Three short paragraphs is fine.
+1. **They had a clear win** → acknowledge it specifically with the number. *"saw your val_loss come down from 0.46 → 0.21 on StethoBench — nice progress."* This is the highest-value option when the data supports it.
+2. **They hit errors / terminations on a clear pattern** → offer specific help, not generic. *"noticed a chunk of runs terminated on the F1 metric — happy to take a look if you want a second pair of eyes."*
+3. **Their use case maps to a pattern we've seen** → name the parallel without naming the other user. *"we've seen folks doing reward-shaping work get gains by widening the eval batch — could be worth a try."*
+4. **Concrete next thing to try** → one specific suggestion grounded in their run. *"if you're hitting a ceiling on Stage 1, the move other users have made is opening up the search to the model class itself."*
+5. **Nothing specific stands out** → omit the sentence entirely. The two-paragraph version is fine.
+
+## Self-check before returning
+
+Read your draft body once more, asking:
+- Is every factual claim about their run actually supported by the data above? (If not, fix or remove it.)
+- Is the middle sentence specific enough that they'd know it was written for them, not a template? (If no, omit it.)
+- Does it sound like a friendly note from a founder, not a sales email? (If no, cut more.)
 
 Return only JSON."""
 
