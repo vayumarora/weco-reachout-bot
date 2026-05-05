@@ -211,13 +211,67 @@ def slack_commands():
 # ── Events: reaction_added with :envelope: ──────────────────────────────────
 
 
+def _walk_blocks_for_text(node) -> list[str]:
+    """Recursively pull plain text out of Slack rich_text / block_kit structures."""
+    out: list[str] = []
+    if isinstance(node, dict):
+        ntype = node.get("type")
+        if ntype == "text":
+            t = node.get("text")
+            if t:
+                out.append(t)
+        elif ntype == "link":
+            url = node.get("url", "")
+            txt = node.get("text", "")
+            if url:
+                out.append(url)
+            if txt:
+                out.append(txt)
+        elif ntype == "user":
+            uid = node.get("user_id")
+            if uid:
+                out.append(f"<@{uid}>")
+        elif ntype == "channel":
+            cid = node.get("channel_id")
+            if cid:
+                out.append(f"<#{cid}>")
+        # Recurse into all values
+        for v in node.values():
+            out.extend(_walk_blocks_for_text(v))
+    elif isinstance(node, list):
+        for item in node:
+            out.extend(_walk_blocks_for_text(item))
+    return out
+
+
 def _resolve_message_text(channel: str, ts: str) -> str:
-    """Fetch the original message that was reacted to."""
+    """Fetch the original message that was reacted to.
+
+    Joins together: the top-level text field, all attachment fallbacks, and any
+    rich text inside blocks. Bot-posted messages often have empty `text` and put
+    everything in blocks.
+    """
     try:
         resp = slack.conversations_history(channel=channel, latest=ts, inclusive=True, limit=1)
         msgs = resp.data.get("messages", [])
-        if msgs:
-            return msgs[0].get("text", "") or ""
+        if not msgs:
+            return ""
+        msg = msgs[0]
+        parts: list[str] = []
+        top = msg.get("text") or ""
+        if top:
+            parts.append(top)
+        # Walk blocks for rich-text content (where bots typically put their content)
+        blocks = msg.get("blocks") or []
+        parts.extend(_walk_blocks_for_text(blocks))
+        # Walk attachments too — some legacy bots post here
+        for att in msg.get("attachments") or []:
+            for k in ("text", "pretext", "fallback", "title"):
+                v = att.get(k)
+                if v:
+                    parts.append(v)
+            parts.extend(_walk_blocks_for_text(att.get("blocks") or []))
+        return "\n".join(parts)
     except SlackApiError as e:
         logger.warning("conversations_history failed: %s", e.response.get("error"))
     return ""
@@ -270,9 +324,19 @@ def slack_events():
         return ("", 200)
 
     text = _resolve_message_text(channel, ts)
-    logger.info("resolved message text (%d chars): %s", len(text), text[:200])
-    emails = EMAIL_RE.findall(text)
-    logger.info("found %d email(s) in message", len(emails))
+    logger.info("resolved message text (%d chars): %s", len(text), text[:300])
+    raw_emails = EMAIL_RE.findall(text)
+    # Dedup, preserve order, cap at 3 to avoid runaway drafts
+    seen: set[str] = set()
+    emails: list[str] = []
+    for e in raw_emails:
+        e = e.lower()
+        if e not in seen:
+            seen.add(e)
+            emails.append(e)
+        if len(emails) >= 3:
+            break
+    logger.info("found %d unique email(s): %s", len(emails), emails)
     if not emails:
         try:
             slack.chat_postMessage(
@@ -286,8 +350,8 @@ def slack_events():
             pass
         return ("", 200)
 
-    email = emails[0]
-    _executor.submit(_draft_and_dm, operator, email)
+    for email in emails:
+        _executor.submit(_draft_and_dm, operator, email)
     return ("", 200)
 
 
