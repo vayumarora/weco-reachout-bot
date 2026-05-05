@@ -29,8 +29,17 @@ NOTION_USER_ACTIVITY_DB_ID = _clean(
 SUPABASE_URL = _clean("SUPABASE_URL")
 SUPABASE_KEY = _clean("SUPABASE_KEY")
 
-# Emoji that triggers a reachout draft on reaction_added
-TRIGGER_EMOJI = _clean("TRIGGER_EMOJI", "envelope")
+# Emojis that trigger a reachout draft on reaction_added.
+# Comma-separated list. Defaults cover the common envelope/email reactions
+# users reach for: ✉️ (envelope), 📧 (e-mail), 📩 (envelope_with_arrow), 📨 (incoming_envelope).
+TRIGGER_EMOJIS = {
+    e.strip()
+    for e in _clean(
+        "TRIGGER_EMOJIS",
+        "envelope,e-mail,email,envelope_with_arrow,incoming_envelope,love_letter",
+    ).split(",")
+    if e.strip()
+}
 
 # Sender identity baked into the email
 SENDER_NAME = _clean("SENDER_NAME", "Vayum")

@@ -37,7 +37,7 @@ from config import (
     PORT,
     SLACK_BOT_TOKEN,
     SLACK_SIGNING_SECRET,
-    TRIGGER_EMOJI,
+    TRIGGER_EMOJIS,
     VAYUM_SLACK_USER_ID,
 )
 from drafter import draft_email
@@ -247,13 +247,18 @@ def slack_events():
     if event.get("type") != "reaction_added":
         return ("", 200)
 
-    if event.get("reaction") != TRIGGER_EMOJI:
+    reaction = event.get("reaction", "")
+    if reaction not in TRIGGER_EMOJIS:
+        logger.info("ignoring reaction :%s: (not in trigger set %s)", reaction, sorted(TRIGGER_EMOJIS))
         return ("", 200)
 
     reactor = event.get("user", "")
     item = event.get("item") or {}
     if item.get("type") != "message":
+        logger.info("reaction on non-message item: %s", item.get("type"))
         return ("", 200)
+
+    logger.info("reaction :%s: by %s on message in %s", reaction, reactor, item.get("channel"))
 
     channel = item.get("channel", "")
     ts = item.get("ts", "")
@@ -265,7 +270,9 @@ def slack_events():
         return ("", 200)
 
     text = _resolve_message_text(channel, ts)
+    logger.info("resolved message text (%d chars): %s", len(text), text[:200])
     emails = EMAIL_RE.findall(text)
+    logger.info("found %d email(s) in message", len(emails))
     if not emails:
         try:
             slack.chat_postMessage(
