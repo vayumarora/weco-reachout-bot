@@ -212,20 +212,25 @@ def slack_commands():
 
 
 def _walk_blocks_for_text(node) -> list[str]:
-    """Recursively pull plain text out of Slack rich_text / block_kit structures."""
+    """Recursively pull plain text out of Slack block_kit / rich_text structures.
+
+    Handles both Block Kit composition objects (mrkdwn/plain_text) and
+    rich_text element types (text/link/user/channel).
+    """
     out: list[str] = []
     if isinstance(node, dict):
         ntype = node.get("type")
-        if ntype == "text":
-            t = node.get("text")
-            if t:
-                out.append(t)
+        # Block Kit text composition objects: {"type": "mrkdwn"|"plain_text", "text": "..."}
+        if ntype in ("mrkdwn", "plain_text") and isinstance(node.get("text"), str):
+            out.append(node["text"])
+        elif ntype == "text" and isinstance(node.get("text"), str):
+            out.append(node["text"])
         elif ntype == "link":
             url = node.get("url", "")
             txt = node.get("text", "")
             if url:
                 out.append(url)
-            if txt:
+            if isinstance(txt, str) and txt:
                 out.append(txt)
         elif ntype == "user":
             uid = node.get("user_id")
@@ -235,9 +240,10 @@ def _walk_blocks_for_text(node) -> list[str]:
             cid = node.get("channel_id")
             if cid:
                 out.append(f"<#{cid}>")
-        # Recurse into all values
+        # Recurse into all child values to catch nested elements
         for v in node.values():
-            out.extend(_walk_blocks_for_text(v))
+            if isinstance(v, (dict, list)):
+                out.extend(_walk_blocks_for_text(v))
     elif isinstance(node, list):
         for item in node:
             out.extend(_walk_blocks_for_text(item))
